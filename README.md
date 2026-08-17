@@ -19,8 +19,9 @@ game gets big.
 ## Licensing
 
 - **Code** — [MIT](LICENSE). Use it commercially, closed-source, anywhere. Keep the notice.
-- **Assets** — CC0 or CC BY. See [`LICENSE-ASSETS`](LICENSE-ASSETS) for the policy and
-  [`ASSETS.md`](ASSETS.md) for per-asset provenance.
+- **Assets** — CC0 / public domain. No attribution required, ever. See
+  [`LICENSE-ASSETS`](LICENSE-ASSETS) for the policy and [`ASSETS.md`](ASSETS.md) for
+  per-asset provenance.
 
-Shipping a game built on this means pasting one pre-written block from `CREDITS.md` into
-your credits. That's the entire obligation — no research, no per-file bookkeeping.
+That combination is deliberate: you can ship a game built on this without owing anyone
+a credit line or a license file.

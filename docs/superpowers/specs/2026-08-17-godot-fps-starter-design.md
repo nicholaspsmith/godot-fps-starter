@@ -68,9 +68,9 @@ disclosure commitment.
    enabling the plugin in Project Settings. Everything else (input actions, audio buses)
    self-bootstraps at runtime and is idempotent. See §4.3; "zero manual steps" is not achievable
    and v1 of this spec was wrong to claim it.
-5. All first-party code is MIT and all bundled assets are CC0 or CC-BY with attribution shipped
-   in `CREDITS.md`. Bundled third-party dev tooling (GUT) retains its own notice and is not
-   required at runtime.
+5. All first-party code is MIT and **every bundled asset is CC0** — downstream users owe no
+   attribution whatsoever. Bundled third-party dev tooling (GUT) retains its own notice and is
+   not required at runtime.
 
 ### Explicit non-goals for v1.0
 
@@ -108,17 +108,17 @@ overclaim indefensible, and COGITO already owns the batteries-included end of th
 ## 3. Licensing
 
 - **Code — MIT.** Matches the Godot engine's own license; the ecosystem default.
-- **Assets — CC0 preferred, CC-BY acceptable.**
+- **Assets — CC0 only.**
 
-The CC0-only rule from v1 of this spec was relaxed deliberately. It was blocking the single
-hardest asset to source (§6), and it is stricter than the ecosystem's own bar —
-`godot-demo-projects` accepts CC BY and CC BY-SA **[A]**. **Rejected outright:** CC BY-NC,
-CC BY-ND, GPL/AGPL, marketplace EULAs (Fab, Unity, Unreal), anything with a
+**Rejected outright:** CC-BY (it imposes an attribution obligation on every game built with the
+starter), CC BY-NC, CC BY-ND, GPL/AGPL, marketplace EULAs (Fab, Unity, Unreal), anything with a
 no-redistribution-in-collections clause, and anything of unverified origin.
 
-To keep the attribution burden near zero for downstream users, every CC-BY asset's required
-credit line is pre-written into a copy-pasteable block in `CREDITS.md`. Shipping a game built on
-this starter means pasting one block, not doing research.
+> **History worth keeping.** An intermediate revision of this spec relaxed the rule to admit
+> CC-BY, on the grounds that CC0 could not supply an animated first-person viewmodel. That
+> premise was wrong — it assumed the viewmodel had to be *skeletally* animated. §6 resolves it
+> within CC0, so the relaxation was reverted. The stricter rule is also the better product:
+> downstream users owe nothing at all, not even a pasted credits block.
 
 **Provenance is the real defense, not license text.** On user-upload sites (Freesound,
 OpenGameArt) the license is self-declared and can be wrong. `ASSETS.md` therefore records, for
@@ -141,7 +141,6 @@ godot-fps-starter/
 ├── LICENSE                        # MIT — code
 ├── LICENSE-ASSETS                 # asset licensing policy
 ├── ASSETS.md                      # per-asset provenance ledger
-├── CREDITS.md                     # copy-pasteable attribution block
 ├── CHANGELOG.md
 ├── README.md
 ├── addons/
@@ -151,7 +150,7 @@ godot-fps-starter/
 │   └── gut/                       # dev-only test framework (MIT); safe to delete
 ├── demo/                          # THE SAMPLE GAME (consumes the framework)
 │   ├── levels/  weapons/  enemies/  ui/
-├── assets/                        # CC0/CC-BY art + audio, referenced from demo .tres
+├── assets/                        # CC0 art + audio, referenced from demo .tres
 ├── docs/
 ├── tests/
 └── tools/
@@ -317,6 +316,10 @@ exercised.
 
 **Fire strategies** are swappable: `HitscanFire` in v1.0, `ProjectileFire` as a deliberate seam.
 
+**Viewmodel animation is authored in Godot on `Node3D` transforms, not on bones** (§6) — idle,
+fire, reload, equip and ADS as `AnimationPlayer` tracks over a static CC0 weapon mesh whose
+magazine is a separate node. No rig, no Blender, and users can retime the reload in the editor.
+
 **Ported hardened fixes:** the ADS near-plane pull-back gating and the true iron-sights alignment
 work. **Not ported: the WAV loop-region full-auto audio hack.** Godot 4.2+ ships
 [`AudioStreamPolyphonic`](https://docs.godotengine.org/en/stable/classes/class_audiostreampolyphonic.html)
@@ -444,7 +447,8 @@ happens, which reads as unfinished to exactly the audience being courted. v1.0 s
 
 **Art direction: coherent stylized low-poly, with photoreal PBR materials.** "Modern" here means
 modern *rendering and game feel*, not modern *fidelity* — a distinction that makes the asset
-sourcing tractable and the look intentional rather than apologetic.
+sourcing tractable and the look intentional rather than apologetic. It is also what makes a
+weapon-only, transform-animated viewmodel read as a style rather than a shortcut.
 
 Budget: 1K textures, VRAM-compressed; Ogg Vorbis over a second, WAV only for short SFX; **whole
 repo under ~50 MB**. **No Git LFS** — Asset Store downloads are repo archives and GitHub source
@@ -455,7 +459,7 @@ archives don't resolve LFS pointers, so assets would arrive as text stubs **[A]*
 | Type | Sources |
 |---|---|
 | Textures | ambientCG, Poly Haven, [3dtextures.me](https://3dtextures.me/about/), cgbookcase (archive a copy of its license statement — it moved off a standing URL) |
-| Models | Kenney, Quaternius, [WRAD ARMS](https://wriks.itch.io/wrad-arms) (CC0 rigged FPS arms) |
+| Models | [Kenney](https://kenney.nl/assets/blaster-kit) (weapons — the Blaster Kit is the chosen viewmodel source), Quaternius, [WRAD ARMS](https://wriks.itch.io/wrad-arms) (CC0 rigged FPS arms, optional) |
 | Audio | Freesound (CC0 facet), Kenney, OpenGameArt (CC0 filter) |
 | Fonts | Typodermic (~307 CC0 fonts) — note Kenney's own kit ships SIL OFL Lilita One **[V]**; fonts are the likeliest silent license violation, so audit them as their own pass |
 
@@ -479,16 +483,39 @@ retired *Sampling+ 1.0* persists on old accounts — and the "Free Cultural Work
 require an account, so a bare `curl` script won't work. On OpenGameArt: preview clips are **not**
 covered by the asset license — download the payload, never the preview.
 
-### The viewmodel decision
+### The viewmodel decision — resolved, and it removes the project's biggest risk
 
-There is **no well-known CC0 animated first-person viewmodel** with idle/fire/reload/equip/ADS;
-Mixamo cannot be relicensed. This is the exact wall that stalled the predecessor, so it is
-resolved up front rather than discovered mid-build: **the art licence rule is relaxed to include
-CC-BY specifically to unblock this**, with attribution shipped pre-written in `CREDITS.md`.
+The problem as originally framed was: no CC0 animated first-person viewmodel exists with
+idle/fire/reload/equip/ADS, and Mixamo cannot be relicensed — the exact wall that stalled the
+predecessor.
 
-**This is a hard gate on the implementation plan: source the weapon viewmodel and its animation
-set before any weapon code is written.** It is the item most likely to stall this project the way
-it stalled the last one.
+**The framing was wrong.** It assumed the viewmodel must be *skeletally* animated. Drop that
+assumption and the constraint disappears:
+
+- **Model — [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit)**, CC0, ~40 objects in
+  glTF, low-poly, one shared texture. The decisive property: **scopes and magazines are separate
+  removable meshes** **[A — verify on download]**, so a genuine reload (magazine drops out, new
+  one seats) is expressible with transform animation alone. [Quaternius' Sci-Fi Modular Gun
+  Pack](https://quaternius.com/packs/scifimodularguns.html) is the CC0 fallback if the look
+  doesn't suit.
+- **Animation — authored in Godot, keyframing `Node3D` transforms, not bones.** Idle, fire,
+  reload, equip and ADS are `AnimationPlayer` tracks on the viewmodel's transform hierarchy. No
+  Blender, no rig, no DCC tool in the pipeline at all.
+- **Procedural layers on top** — sway, walk-bob, recoil, ADS blend — per §5.2.
+- **Visible arms are an optional empty slot**, not a shipped default. [WRAD
+  ARMS](https://wriks.itch.io/wrad-arms) (CC0, rigged, no weapons) fits it for users who want
+  hands. A weapon-only viewmodel is a mainstream, deliberate look, and it is what the chosen
+  stylized art direction supports.
+
+**This is strictly better than a rigged GLB for a teaching artifact.** A beginner can open the
+AnimationPlayer and retime the reload themselves, inside Godot, without learning Blender — which
+is the precise skill wall this whole project exists to route around. It also means any static gun
+model a user finds later drops straight in.
+
+Kenney's kit validates the floor: its `blaster.tscn` is a bare static mesh with no skeleton and
+no AnimationPlayer, driven entirely by data **[V — inspected the file]**. Authored transform
+animation puts us materially above that, which is where the "better than Kenney" margin comes
+from.
 
 ---
 
@@ -559,7 +586,7 @@ Trimmed from ten files to five, plus release hygiene.
 | `docs/adding-an-enemy.md` | Components, states, perception tuning |
 | `docs/input-and-settings.md` | Action names, rebinding, settings persistence |
 | `docs/building-a-level.md` | Blockout metrics, encounter patterns, navmesh setup |
-| `ASSETS.md` / `CREDITS.md` | Provenance ledger / copy-pasteable attribution |
+| `ASSETS.md` | Per-asset provenance ledger (source, author, licence, retrieval date) |
 | `CHANGELOG.md` | Semver, git tags, and the supported-engine-range policy per release |
 | `CONTRIBUTING.md` | Setup, style, PR expectations, the manual playtest checklist |
 
@@ -569,7 +596,8 @@ Trimmed from ten files to five, plus release hygiene.
 
 | Risk | Mitigation |
 |---|---|
-| **No CC0 animated FPS viewmodel exists** — the exact blocker that stalled the predecessor | Art licence relaxed to CC-BY (§3). **Hard gate: source the viewmodel + animation set before any weapon code.** |
+| ~~No CC0 animated FPS viewmodel exists~~ — **retired.** The premise assumed skeletal animation | Resolved within CC0 (§6): static Kenney Blaster Kit mesh + animation authored on `Node3D` transforms in Godot. No rig, no Blender, no DCC tool on the critical path |
+| Transform-only animation reads as cheap next to a hand-animated rig | The separate-magazine mesh carries the reload; stylized low-poly art direction (§6) makes it a style, not a shortcut. Validate at the human playtest gate |
 | Engine minors ship every ~4–5 months and 4.x has no LTS | Target the current minor, float the patch, validate against each beta, and state the supported engine range per release in `CHANGELOG.md` |
 | Silent 4.6→4.7 breakages (mouse/keyboard device IDs, typed-return inheritance) | Migrate deliberately; the silent ones need a targeted pass over device-aware input branching |
 | Scope creep into a game rather than a starter | §1 non-goals are binding; new features need a version after 1.0 |
@@ -587,7 +615,8 @@ Trimmed from ten files to five, plus release hygiene.
 |---|---|---|
 | Engine target | **Godot 4.7 (dev against 4.7.1)** | 4.7 shipped 2026-06-18 with two patches; 4.6 is unpatched for 89 days; no LTS exists |
 | Long-term goal | **Asset Store, not official adoption** | Declined upstream since 2021 and reaffirmed 2026-02; "official" means in-repo; AI-authored code is barred there |
-| Art licence | **CC0 preferred, CC-BY acceptable** | CC0-only blocked the viewmodel — the project's single hardest asset. Matches `godot-demo-projects`' own bar. Attribution pre-written in `CREDITS.md` |
+| Art licence | **CC0 only** | Zero downstream obligation. Briefly relaxed to CC-BY to unblock the viewmodel, then reverted once that premise proved false |
+| Viewmodel | Static CC0 mesh + transform animation authored in Godot | Removes Blender and rigging from the critical path entirely — the skill wall this project exists to route around |
 | Art direction | Stylized low-poly + photoreal PBR materials | Makes sourcing tractable; "modern" = rendering and feel, not fidelity |
 | v1.0 scope | Core + feel + UI shell + AI + **switching, death, win, pickups, exports** | A demo with no death and no win state reads as unfinished |
 | Cut to v1.1 | SDFGI, occlusion culling, hearing perception, third quality preset, second level version, shell-casing pooling, damage-direction indicator, low-health vignette, web export | Keeps 1.0 shippable |

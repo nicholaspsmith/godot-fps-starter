@@ -5,22 +5,21 @@ Source code in this repository is licensed under the MIT License; see LICENSE.
 This file covers everything else — art, audio, fonts, and other non-code assets,
 principally under `assets/`.
 
-Every bundled asset is either **CC0 1.0** (public domain, no attribution required)
-or **CC BY 4.0** (attribution required). Per-asset provenance — source URL, author,
-license, and retrieval date — is recorded in ASSETS.md.
+Every bundled asset is CC0 1.0 Universal (public domain dedication). You may copy,
+modify, distribute, and use them — including commercially — without permission and
+without attribution. Per-asset provenance (source URL, author, license, retrieval
+date) is recorded in ASSETS.md.
 
-If you ship a game built on this starter
-----------------------------------------
-
-Copy the ready-made attribution block from CREDITS.md into your credits. It is
-pre-written and covers every CC BY asset here. That is the whole obligation: no
-research, no per-file bookkeeping. Assets marked CC0 in ASSETS.md require nothing
-at all, and you may of course replace any asset with your own.
+If you ship a game built on this starter, you owe nothing: no credits line, no
+license file, no bookkeeping. That is the entire point.
 
 What may never be committed here
 --------------------------------
 
-- CC BY-NC or CC BY-ND (non-commercial or no-derivatives)
+- CC BY — attribution-required licences are excluded deliberately. They are fine
+  licences; they just push an obligation onto every game built with this starter,
+  which defeats the purpose of a starter kit.
+- CC BY-NC, CC BY-ND (non-commercial or no-derivatives)
 - GPL / AGPL / any copyleft licence
 - Marketplace EULAs (Fab, Unity Asset Store, Unreal) — these forbid redistributing
   the raw asset files, which is exactly what a public repository does
@@ -30,11 +29,7 @@ What may never be committed here
 
 On user-upload sites such as Freesound and OpenGameArt, licences are self-declared
 and can be wrong. Our defence is provenance, not licence text — hence the retrieval
-date in ASSETS.md.
+date in ASSETS.md, and the CI check that every file under `assets/` has a row there.
 
-The governing principle: a starter kit must not impose obligations on the games
-built with it beyond a single pasted credits block.
-
-Full licence texts:
-  CC0 1.0    https://creativecommons.org/publicdomain/zero/1.0/legalcode
-  CC BY 4.0  https://creativecommons.org/licenses/by/4.0/legalcode
+Full licence text:
+  CC0 1.0  https://creativecommons.org/publicdomain/zero/1.0/legalcode
