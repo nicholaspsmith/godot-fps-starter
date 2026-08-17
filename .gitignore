@@ -1,0 +1,14 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# macOS
+.DS_Store
+
+# Godot export output
+/build/
+*.tmp
+
+# Editor / tooling
+.idea/
+.vscode/
