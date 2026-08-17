@@ -1,6 +1,6 @@
 # Godot FPS Starter
 
-A complete, modern first-person shooter starter for **Godot 4.6** — free, permissively
+A complete, modern first-person shooter starter for **Godot 4.7** — free, permissively
 licensed, and built to be the foundation of your next FPS instead of a throwaway demo.
 
 > **Status: in development.** The design spec lands first, then the implementation.
@@ -19,8 +19,8 @@ game gets big.
 ## Licensing
 
 - **Code** — [MIT](LICENSE). Use it commercially, closed-source, anywhere. Keep the notice.
-- **Assets** — CC0 / public domain. No attribution required, ever. See
+- **Assets** — CC0 or CC BY. See [`LICENSE-ASSETS`](LICENSE-ASSETS) for the policy and
   [`ASSETS.md`](ASSETS.md) for per-asset provenance.
 
-That combination is deliberate: you can ship a game built on this without owing anyone
-a credit line or a license file.
+Shipping a game built on this means pasting one pre-written block from `CREDITS.md` into
+your credits. That's the entire obligation — no research, no per-file bookkeeping.

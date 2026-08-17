@@ -1,18 +1,40 @@
-CC0 1.0 Universal — Public Domain Dedication
-============================================
+Asset Licensing Policy
+======================
 
-All art, audio, and other non-code assets in this repository (notably everything
-under `assets/`) are released into the public domain under CC0 1.0 Universal.
+Source code in this repository is licensed under the MIT License; see LICENSE.
+This file covers everything else — art, audio, fonts, and other non-code assets,
+principally under `assets/`.
 
-You may copy, modify, distribute, and use them — including for commercial
-purposes — without asking permission and without providing attribution.
+Every bundled asset is either **CC0 1.0** (public domain, no attribution required)
+or **CC BY 4.0** (attribution required). Per-asset provenance — source URL, author,
+license, and retrieval date — is recorded in ASSETS.md.
 
-Full legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+If you ship a game built on this starter
+----------------------------------------
 
-Third-party assets bundled here are themselves CC0. Their provenance (source URL,
-author, license) is recorded per asset in ASSETS.md. Assets under any other
-license — CC-BY, Fab/marketplace EULAs, GPL/AGPL, or of unverified origin — must
-never be committed to this repository, because a starter kit must not impose
-license obligations on the games built with it.
+Copy the ready-made attribution block from CREDITS.md into your credits. It is
+pre-written and covers every CC BY asset here. That is the whole obligation: no
+research, no per-file bookkeeping. Assets marked CC0 in ASSETS.md require nothing
+at all, and you may of course replace any asset with your own.
 
-Source code is licensed separately under the MIT License; see LICENSE.
+What may never be committed here
+--------------------------------
+
+- CC BY-NC or CC BY-ND (non-commercial or no-derivatives)
+- GPL / AGPL / any copyleft licence
+- Marketplace EULAs (Fab, Unity Asset Store, Unreal) — these forbid redistributing
+  the raw asset files, which is exactly what a public repository does
+- Any licence with a no-redistribution-in-collections clause. A starter kit *is* a
+  collection; "Custom CC0 with restrictions" is not CC0.
+- Anything of unverified origin
+
+On user-upload sites such as Freesound and OpenGameArt, licences are self-declared
+and can be wrong. Our defence is provenance, not licence text — hence the retrieval
+date in ASSETS.md.
+
+The governing principle: a starter kit must not impose obligations on the games
+built with it beyond a single pasted credits block.
+
+Full licence texts:
+  CC0 1.0    https://creativecommons.org/publicdomain/zero/1.0/legalcode
+  CC BY 4.0  https://creativecommons.org/licenses/by/4.0/legalcode
