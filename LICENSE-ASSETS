@@ -1,0 +1,18 @@
+CC0 1.0 Universal — Public Domain Dedication
+============================================
+
+All art, audio, and other non-code assets in this repository (notably everything
+under `assets/`) are released into the public domain under CC0 1.0 Universal.
+
+You may copy, modify, distribute, and use them — including for commercial
+purposes — without asking permission and without providing attribution.
+
+Full legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Third-party assets bundled here are themselves CC0. Their provenance (source URL,
+author, license) is recorded per asset in ASSETS.md. Assets under any other
+license — CC-BY, Fab/marketplace EULAs, GPL/AGPL, or of unverified origin — must
+never be committed to this repository, because a starter kit must not impose
+license obligations on the games built with it.
+
+Source code is licensed separately under the MIT License; see LICENSE.
