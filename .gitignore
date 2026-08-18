@@ -2,6 +2,11 @@
 .godot/
 /android/
 
+# NOTE: do NOT ignore *.uid files. Godot 4.4+ generates them for scripts and
+# shaders, they are the stable identity of each file across renames, and the CI
+# boundary check in tools/ci/check_boundary.gd resolves uid:// references
+# through them. Ignoring them breaks that check silently.
+
 # macOS
 .DS_Store
 
