@@ -1535,3 +1535,104 @@ HUD (health, ammo, spread-driven crosshair, hitmarker), main/pause/settings/deat
 ### M6 — Level, art pass, and release
 Art-passed level demonstrating choke point / flanking route / arena, blockout retained for teaching, CC0 asset sourcing against the §6 allowlist, export presets for Windows/Linux/macOS, the five docs, `CHANGELOG.md`, and the Asset Store listing.
 **Exit:** a downloadable build, docs that pass the three-newcomer test from spec §1 criterion 3, and a published Asset Store Template.
+
+---
+
+## Execution log (session of 2026-08-17)
+
+Executed with superpowers:subagent-driven-development on branch `m1-foundation`, one implementer
+subagent per task plus an independent reviewer per task. Recorded here rather than only in the
+run's ledger because that ledger lives in gitignored scratch (`.superpowers/`) and does not survive
+a clean.
+
+### Task status
+
+| Task | State | Commits |
+|---|---|---|
+| 1. Project scaffold | ✅ complete, reviewed clean | `ae8531b..b44ca98` |
+| 2. GUT + `tools/gdtest` | ✅ complete, reviewed clean | `b44ca98..127c73c` |
+| 3. Addon skeleton | ✅ implemented + fix verified by controller; **scoped re-review not yet run** | `127c73c..68baa55` |
+| 4. Input bootstrap | not started | — |
+| 5. Audio buses | not started | — |
+| 6. Settings persistence | not started | — |
+| 7. CI | not started | — |
+
+**Resume at:** Task 3's scoped re-review (range `6f47258..68baa55`, evidence already gathered in the
+run's `task-3-report.md`), then Task 4. Next BASE = `68baa55`.
+
+### Environment
+
+- Godot **4.7.1** at `/Applications/Godot4.7.app/Contents/MacOS/Godot` (4.6.3 left in place at
+  `/Applications/Godot.app` for `backrooms-descent`).
+- Every headless invocation goes through `tools/gdtest`, never the raw binary.
+- **Not yet installed:** `gdtoolkit==4.5.0`, which Task 7's lint gate needs (`pipx install "gdtoolkit==4.5.0"`).
+
+### Defects this plan had, found only by running it
+
+Three bugs surfaced during execution, all the same shape — **a verification step that passes
+without verifying**. None were visible by reading; each took executing the thing. All three fixes
+are folded into the task text above, so this plan no longer contains them.
+
+1. **Hand-written scenes carry no `uid=`.** Verified on 4.7.1: neither `--import` nor a programmatic
+   `ResourceSaver.save()` round-trip assigns one — only the editor writes them. Task 7 Step 3 greps
+   a uid out of `blockout.tscn` to plant its boundary-check violation, so with no uid the grep
+   returned empty and the check would have passed while testing nothing. Fixed in Task 1 Step 4.
+2. **`UID` is a readonly shell variable.** Task 7 Step 3 did `UID=$(grep …)`; both bash and zsh
+   reserve `UID` for the user id, so the assignment failed and the planted probe would have been
+   `preload("")` — again passing while testing nothing. Renamed `LEAK_UID`, with a non-empty
+   assertion so it fails loudly instead.
+3. **`_exit_tree()` fires on editor shutdown, not just plugin disable.** The original `plugin.gd`
+   removed the autoload there, so the entry was deleted on every quit and never survived to disk.
+   Corrected to `_enable_plugin`/`_disable_plugin`, which fire only on the explicit Plugins-tab
+   toggle. Consequence now documented in the file itself: a cloned project never fires
+   `_enable_plugin`, so the committed `[autoload]` entry is the correct shipped state.
+
+The pattern is worth carrying into M2–M6: **a check that can silently succeed is worse than no
+check, because it manufactures confidence.** Task 7's own gate must therefore prove it can resolve a
+known uid before it is allowed to report "clean" — see the open ruling below.
+
+### Decisions taken during execution (rulings)
+
+Each was made without the human in the loop; each is reversible at the stated cost.
+
+1. **Reordered the plan** — tooling moved from position 6 to 2. Tasks 3–5 wrote tests but deferred
+   running them until GUT existed, killing TDD's red phase and making those tasks unreviewable.
+   *Cost if wrong: one `git revert`; no code depends on the ordering.*
+2. **Edited this plan file** rather than patching around defects in dispatch briefs, since briefs are
+   extracted from it by task number. *Cost if wrong: plan history is in git.*
+3. **Task 1's scenes hand-written**, not editor-authored (no agent can drive the GUI). Safe because
+   the blockout has zero `ext_resource` entries. *Cost if wrong: malformed `.tscn` fails visibly at
+   the run gate.*
+4. **The uid gap entered Task 1's fix round** rather than being deferred — cheap now, silently
+   corrupts Task 7 later. *Cost if wrong: two header lines.*
+5. **OPEN — must be carried into Task 7's dispatch.** `check_boundary.gd` must fail loudly when uid
+   resolution is unavailable. uid→path resolution reads `.godot/uid_cache.bin`, built by an import
+   scan; on a cold clone with no prior `--import`, every `has_id()` returns false, so the checker
+   resolves nothing and **passes a repo full of violations**. It must assert it can resolve a known
+   uid before trusting a clean result. *Cost if wrong: a few lines of defensive code.*
+6. **Fixed the readonly-`UID` bug** (defect 2 above). *Cost if wrong: none; the old form was provably
+   broken.*
+7. **Task 2's review package scoped to authored files.** The raw diff was 797 KB / 261 files, of
+   which 259 were unmodified upstream GUT. Vendoring was instead verified at the integrity level:
+   `diff -rq` against the upstream v9.7.1 tarball came back byte-identical, `LICENSE.md` present.
+   *Cost if wrong: a modified vendored dep could slip through — mitigated by the byte-level diff,
+   which is stronger evidence than reading 22k lines.*
+8. **Rejected a reviewer finding.** It wanted `addons/gut/menu_manager.gd.uid` deleted as botched-copy
+   cruft; upstream v9.7.1 ships that orphan itself (identical 86 `.gd` / 87 `.uid` counts). Deleting
+   it would fork our copy from upstream and turn future GUT upgrades from "replace and verify
+   identical" into "replace and re-derive local patches." *Cost if wrong: a stray 20-byte file.*
+9. **Rewrote `plugin.gd`'s hooks** (defect 3 above). This also reversed an earlier instruction not to
+   hand-write the `[autoload]` entry — that instruction existed to stop a broken install path being
+   hidden, and once the mechanism was understood the committed entry became correct. *Cost if wrong:
+   the install-into-existing-project path fails to register the autoload; the clone path is
+   unaffected.*
+
+### Verified engine facts worth not rediscovering
+
+- `debug/gdscript/warnings/directory_rules` exists in 4.7.1 with hint_string
+  `"4/14:;2/2:Exclude,Include"` → **Exclude=0, Include=1**; default `{"res://addons": 0}`. Set to
+  `{"res://addons": 0, "res://addons/fps_starter": 1}`.
+- GUT **v9.7.1** is the 4.7.x line (its README version table lists the `godot_4_7` branch).
+- `tools/gdtest` proven: green exit 0, **failing test exit 1**, hang killed at the timeout with exit
+  124 and no orphaned process. Only the macOS `gtimeout` branch has been exercised; CI on
+  ubuntu-latest will be the first test of the `timeout` branch.
