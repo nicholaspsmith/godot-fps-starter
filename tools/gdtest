@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# Runs Godot under a HARD timeout. Always use this instead of calling the Godot
+# binary directly for headless work.
+#
+# Why: in the predecessor project, hung headless Godot processes orphaned to
+# launchd (PPID 1) and burned CPU for two days before anyone noticed. The
+# timeout is the safety net; scripts should still terminate themselves.
+#
+#   GODOT=/path/to/Godot tools/gdtest --path . --headless -s addons/gut/gut_cmdln.gd -gexit
+#   GDTEST_TIMEOUT=600 tools/gdtest ...
+set -euo pipefail
+
+: "${GODOT:=godot}"
+: "${GDTEST_TIMEOUT:=180}"
+
+# GNU coreutils is 'timeout' on Linux/CI and 'gtimeout' on macOS via Homebrew.
+if command -v timeout >/dev/null 2>&1; then
+	TIMEOUT_BIN="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+	TIMEOUT_BIN="gtimeout"
+else
+	echo "gdtest: need 'timeout' (Linux) or 'gtimeout' (macOS: brew install coreutils)" >&2
+	exit 127
+fi
+
+if ! command -v "$GODOT" >/dev/null 2>&1 && [[ ! -x "$GODOT" ]]; then
+	echo "gdtest: GODOT is not set to an executable Godot binary (got: $GODOT)" >&2
+	exit 127
+fi
+
+exec "$TIMEOUT_BIN" -k 10 "$GDTEST_TIMEOUT" "$GODOT" "$@"
