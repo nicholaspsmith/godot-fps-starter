@@ -12,3 +12,6 @@
 # Editor / tooling
 .idea/
 .vscode/
+
+# Superpowers SDD scratch (ledger, briefs, review packages)
+.superpowers/

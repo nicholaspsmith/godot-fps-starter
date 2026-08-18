@@ -169,7 +169,154 @@ git commit -m "feat: Godot 4.7 project scaffold with runnable blockout scene"
 
 ---
 
-### Task 2: Addon skeleton and the `FpsSettings` autoload registration
+### Task 2: GUT and the timeout-wrapped test runner
+
+**Files:**
+- Create: `addons/gut/` (vendored, via download)
+- Create: `tools/gdtest`
+- Modify: `project.godot` (GUT's editor plugin entry)
+
+**Interfaces:**
+- Consumes: the project scaffold from Task 1.
+- Produces: `tools/gdtest` — a drop-in `godot` wrapper enforcing a hard timeout, used by **every** later task and by CI. The canonical test invocation:
+  `tools/gdtest --path . --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
+
+> This task comes before the code tasks deliberately. Tests cannot be written test-first if the test runner does not exist yet, and a task that reports "tests written but not run" cannot be reviewed.
+
+- [ ] **Step 1: Vendor GUT at the release matching the engine minor**
+
+GUT pins to engine minors. Confirm the current 4.7-compatible tag before downloading — **do not assume a version number**:
+
+```bash
+git ls-remote --tags --refs https://github.com/bitwes/Gut.git | tail -15
+```
+
+Pick the highest tag documented as supporting Godot 4.7, then:
+
+```bash
+TAG=<the tag you chose>
+curl -fsSL "https://github.com/bitwes/Gut/archive/refs/tags/${TAG}.tar.gz" -o /tmp/gut.tar.gz
+mkdir -p /tmp/gut && tar -xzf /tmp/gut.tar.gz -C /tmp/gut --strip-components=1
+cp -R /tmp/gut/addons/gut addons/gut
+ls addons/gut/gut_cmdln.gd addons/gut/LICENSE.md
+```
+
+**Write down the tag you chose** — Task 7 Step 1 records it in `ASSETS.md` under "Dev tooling". GUT is MIT with its own copyright notice, which spec §1 criterion 5 commits to preserving.
+
+- [ ] **Step 2: Write `tools/gdtest`**
+
+```bash
+#!/usr/bin/env bash
+#
+# Runs Godot under a HARD timeout. Always use this instead of calling the Godot
+# binary directly for headless work.
+#
+# Why: in the predecessor project, hung headless Godot processes orphaned to
+# launchd (PPID 1) and burned CPU for two days before anyone noticed. The
+# timeout is the safety net; scripts should still terminate themselves.
+#
+#   GODOT=/path/to/Godot tools/gdtest --path . --headless -s addons/gut/gut_cmdln.gd -gexit
+#   GDTEST_TIMEOUT=600 tools/gdtest ...
+set -euo pipefail
+
+: "${GODOT:=godot}"
+: "${GDTEST_TIMEOUT:=180}"
+
+# GNU coreutils is 'timeout' on Linux/CI and 'gtimeout' on macOS via Homebrew.
+if command -v timeout >/dev/null 2>&1; then
+	TIMEOUT_BIN="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+	TIMEOUT_BIN="gtimeout"
+else
+	echo "gdtest: need 'timeout' (Linux) or 'gtimeout' (macOS: brew install coreutils)" >&2
+	exit 127
+fi
+
+if ! command -v "$GODOT" >/dev/null 2>&1 && [[ ! -x "$GODOT" ]]; then
+	echo "gdtest: GODOT is not set to an executable Godot binary (got: $GODOT)" >&2
+	exit 127
+fi
+
+exec "$TIMEOUT_BIN" -k 10 "$GDTEST_TIMEOUT" "$GODOT" "$@"
+```
+
+```bash
+chmod +x tools/gdtest
+```
+
+- [ ] **Step 3: Import the project so GUT's files are recognised**
+
+```bash
+GDTEST_TIMEOUT=600 tools/gdtest --path . --headless --import
+```
+
+- [ ] **Step 4: Prove the runner works with a throwaway test**
+
+```bash
+mkdir -p tests/unit
+cat > tests/unit/test_smoke.gd <<'EOF'
+extends GutTest
+
+
+func test_the_runner_runs() -> void:
+	assert_eq(2 + 2, 4)
+EOF
+
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+echo "exit=$?"
+```
+
+Expected: 1 passing test, exit=0.
+
+Now prove the runner reports failure correctly — a green-only check does not prove a test runner works:
+
+```bash
+cat > tests/unit/test_smoke.gd <<'EOF'
+extends GutTest
+
+
+func test_the_runner_runs() -> void:
+	assert_eq(2 + 2, 5)
+EOF
+
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+echo "exit=$?"
+```
+
+Expected: 1 failing test, **exit non-zero**. If it exits 0 on a failing test, CI would be blind — stop and fix the invocation before continuing.
+
+```bash
+rm tests/unit/test_smoke.gd
+```
+
+- [ ] **Step 5: Verify the timeout actually fires**
+
+```bash
+cat > /tmp/hang.gd <<'EOF'
+extends SceneTree
+func _init() -> void:
+	while true:
+		OS.delay_msec(100)
+EOF
+cp /tmp/hang.gd tools/hang_probe.gd
+GDTEST_TIMEOUT=5 tools/gdtest --path . --headless --script res://tools/hang_probe.gd; echo "exit=$?"
+rm tools/hang_probe.gd
+```
+
+Expected: terminates after ~5s with a non-zero exit (124 from `timeout`). If it hangs, `tools/gdtest` is not doing its one job.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add addons/gut tools/gdtest project.godot
+git commit -m "test: vendor GUT and add timeout-wrapped headless test runner"
+```
+
+---
+
+### Task 3: Addon skeleton and the `FpsSettings` autoload registration
 
 **Files:**
 - Create: `addons/fps_starter/plugin.cfg`
@@ -304,7 +451,7 @@ git commit -m "feat: addon skeleton with guarded FpsSettings autoload registrati
 
 ---
 
-### Task 3: Idempotent input-action bootstrap
+### Task 4: Idempotent input-action bootstrap
 
 **Files:**
 - Create: `addons/fps_starter/util/fps_input_bootstrap.gd`
@@ -313,8 +460,6 @@ git commit -m "feat: addon skeleton with guarded FpsSettings autoload registrati
 **Interfaces:**
 - Consumes: nothing beyond the engine.
 - Produces: `FpsInputBootstrap.ensure_actions() -> void`, a static method registering every default action. Action names later tasks use: `fps_move_forward`, `fps_move_back`, `fps_move_left`, `fps_move_right`, `fps_jump`, `fps_sprint`, `fps_crouch`, `fps_fire`, `fps_aim`, `fps_reload`, `fps_weapon_next`, `fps_interact`, `fps_pause`. Also `FpsInputBootstrap.ACTIONS: PackedStringArray` listing all of them.
-
-> GUT is not installed until Task 6. Write the test file now, run it in Task 6. Steps 2 and 4 below are the deferred verification and are re-run there.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -384,9 +529,14 @@ func test_crouch_is_bound_to_both_ctrl_and_c() -> void:
 	assert_has(keys, KEY_C)
 ```
 
-- [ ] **Step 2: Run the test to verify it fails** *(deferred to Task 6 — GUT is not installed yet)*
+- [ ] **Step 2: Run the test to verify it fails**
 
-Expected once run: FAIL with an identifier-not-declared error for `FpsInputBootstrap`.
+```bash
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_fps_input_bootstrap.gd -gexit
+```
+
+Expected: FAIL with an identifier-not-declared error for `FpsInputBootstrap`.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -505,7 +655,14 @@ static func _joy_axis(action: StringName, axis: JoyAxis, value: float) -> void:
 	_add_if_absent(action, event)
 ```
 
-- [ ] **Step 4: Run the test to verify it passes** *(deferred to Task 6)*
+- [ ] **Step 4: Run the test to verify it passes**
+
+```bash
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+```
+
+Expected: PASS, exit=0.
 
 - [ ] **Step 5: Commit**
 
@@ -516,7 +673,7 @@ git commit -m "feat: idempotent runtime input-action bootstrap"
 
 ---
 
-### Task 4: Audio bus bootstrap
+### Task 5: Audio bus bootstrap
 
 **Files:**
 - Create: `addons/fps_starter/util/fps_audio_buses.gd`
@@ -577,7 +734,12 @@ func test_set_bus_volume_mutes_at_zero() -> void:
 	assert_true(AudioServer.is_bus_mute(idx), "zero volume should mute rather than -inf dB")
 ```
 
-- [ ] **Step 2: Run the test to verify it fails** *(deferred to Task 6)*
+- [ ] **Step 2: Run the test to verify it fails**
+
+```bash
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_fps_audio_buses.gd -gexit
+```
 
 Expected: FAIL, `FpsAudioBuses` not declared.
 
@@ -626,7 +788,14 @@ static func _ensure(bus_name: StringName) -> void:
 	AudioServer.set_bus_send(idx, MASTER)
 ```
 
-- [ ] **Step 4: Run the test to verify it passes** *(deferred to Task 6)*
+- [ ] **Step 4: Run the test to verify it passes**
+
+```bash
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+```
+
+Expected: PASS, exit=0.
 
 - [ ] **Step 5: Commit**
 
@@ -637,7 +806,7 @@ git commit -m "feat: runtime audio bus bootstrap with linear volume helper"
 
 ---
 
-### Task 5: Settings data, persistence, and the `FpsSettings` autoload
+### Task 6: Settings data, persistence, and the `FpsSettings` autoload
 
 **Files:**
 - Create: `addons/fps_starter/util/fps_settings_data.gd`
@@ -724,7 +893,14 @@ func test_out_of_range_values_are_clamped_on_load() -> void:
 	assert_gt(restored.mouse_sensitivity, 0.0)
 ```
 
-- [ ] **Step 2: Run the test to verify it fails** *(deferred to Task 6)*
+- [ ] **Step 2: Run the test to verify it fails**
+
+```bash
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_fps_settings_data.gd -gexit
+```
+
+Expected: FAIL, `FpsSettingsData` not declared.
 
 - [ ] **Step 3: Write `fps_settings_data.gd`**
 
@@ -879,7 +1055,14 @@ func apply() -> void:
 	changed.emit()
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass** *(deferred to Task 6)*
+- [ ] **Step 5: Run the tests to verify they pass**
+
+```bash
+tools/gdtest --path . --headless \
+	-s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+```
+
+Expected: PASS, exit=0.
 
 - [ ] **Step 6: Commit**
 
@@ -889,108 +1072,6 @@ git add addons/fps_starter/util/fps_settings_data.gd \
         tests/unit/test_fps_settings_data.gd
 git commit -m "feat: settings data with clamped ConfigFile persistence"
 ```
-
----
-
-### Task 6: GUT, the timeout wrapper, and the first green test run
-
-**Files:**
-- Create: `addons/gut/` (vendored, via download)
-- Create: `tools/gdtest`
-- Modify: `project.godot` (GUT's editor plugin entry)
-
-**Interfaces:**
-- Consumes: all test files from Tasks 3–5.
-- Produces: `tools/gdtest` — a drop-in `godot` wrapper enforcing a hard timeout; the command `tools/gdtest --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit` as the canonical test invocation.
-
-- [ ] **Step 1: Vendor GUT at the release matching the engine minor**
-
-GUT pins to engine minors. Confirm the current 4.7-compatible tag before downloading — **do not assume a version number**:
-
-```bash
-git ls-remote --tags --refs https://github.com/bitwes/Gut.git | tail -15
-```
-
-Pick the highest tag documented as supporting Godot 4.7, then:
-
-```bash
-TAG=<the tag you chose>
-curl -fsSL "https://github.com/bitwes/Gut/archive/refs/tags/${TAG}.tar.gz" -o /tmp/gut.tar.gz
-mkdir -p /tmp/gut && tar -xzf /tmp/gut.tar.gz -C /tmp/gut --strip-components=1
-cp -R /tmp/gut/addons/gut addons/gut
-ls addons/gut/gut_cmdln.gd addons/gut/LICENSE.md
-```
-
-**Write down the tag you chose** — Task 7 Step 1 records it in `ASSETS.md` under "Dev tooling". GUT is MIT with its own copyright notice, which spec §1 criterion 5 commits to preserving.
-
-- [ ] **Step 2: Write `tools/gdtest`**
-
-```bash
-#!/usr/bin/env bash
-#
-# Runs Godot under a HARD timeout. Always use this instead of calling the Godot
-# binary directly for headless work.
-#
-# Why: in the predecessor project, hung headless Godot processes orphaned to
-# launchd (PPID 1) and burned CPU for two days before anyone noticed. The
-# timeout is the safety net; scripts should still terminate themselves.
-#
-#   GODOT=/path/to/Godot tools/gdtest --path . -s addons/gut/gut_cmdln.gd -gexit
-#   GDTEST_TIMEOUT=600 tools/gdtest ...
-set -euo pipefail
-
-: "${GODOT:=godot}"
-: "${GDTEST_TIMEOUT:=180}"
-
-# GNU coreutils is 'timeout' on Linux/CI and 'gtimeout' on macOS via Homebrew.
-if command -v timeout >/dev/null 2>&1; then
-	TIMEOUT_BIN="timeout"
-elif command -v gtimeout >/dev/null 2>&1; then
-	TIMEOUT_BIN="gtimeout"
-else
-	echo "gdtest: need 'timeout' (Linux) or 'gtimeout' (macOS: brew install coreutils)" >&2
-	exit 127
-fi
-
-if ! command -v "$GODOT" >/dev/null 2>&1 && [[ ! -x "$GODOT" ]]; then
-	echo "gdtest: GODOT is not set to an executable Godot binary (got: $GODOT)" >&2
-	exit 127
-fi
-
-exec "$TIMEOUT_BIN" -k 10 "$GDTEST_TIMEOUT" "$GODOT" "$@"
-```
-
-```bash
-chmod +x tools/gdtest
-```
-
-- [ ] **Step 3: Enable GUT and import the project**
-
-```bash
-"$GODOT" --path . --editor --quit
-```
-
-Then enable **Gut** in Project Settings → Plugins (GUT's command-line runner needs its addon present; the editor panel is optional but harmless).
-
-- [ ] **Step 4: Run the deferred tests from Tasks 3–5 and watch them fail, then pass**
-
-```bash
-tools/gdtest --path . --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
-```
-
-Expected on a correct implementation: all tests from `test_fps_input_bootstrap.gd`, `test_fps_audio_buses.gd`, and `test_fps_settings_data.gd` **pass**, and the process exits 0.
-
-If any fail, fix the implementation — not the test — unless the test itself encodes a wrong expectation. This is the first real verification of Tasks 3–5; treat a failure here as those tasks being incomplete.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add addons/gut tools/gdtest tests project.godot
-git commit -m "test: vendor GUT, add timeout-wrapped headless runner, green suite"
-```
-
----
-
 ### Task 7: CI — the boundary check and the full gate
 
 **Files:**
@@ -1026,7 +1107,7 @@ self-declared and terms change; the retrieval date is what lets us re-verify lat
 
 | Component | Source | Licence | Notes |
 |---|---|---|---|
-| `addons/gut/` (tag `<the tag chosen in Task 6 Step 1>`) | https://github.com/bitwes/Gut | MIT | Test framework. Retains its own `LICENSE.md`. Safe to delete from a game built on this starter. GUT pins to engine minors — bump this alongside any Godot upgrade. |
+| `addons/gut/` (tag `<the tag chosen in Task 2 Step 1>`) | https://github.com/bitwes/Gut | MIT | Test framework. Retains its own `LICENSE.md`. Safe to delete from a game built on this starter. GUT pins to engine minors — bump this alongside any Godot upgrade. |
 ```
 
 - [ ] **Step 2: Write `tools/ci/check_boundary.gd`**
