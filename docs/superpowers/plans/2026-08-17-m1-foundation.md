@@ -126,7 +126,21 @@ Then create `demo/levels/blockout/blockout.tscn` — a `Node3D` root named `Bloc
 
 And `demo/main.tscn` — a `Node3D` root named `Main` with the blockout instanced as a child.
 
-> **Why the editor and not a hand-written `.tscn`:** editor-saved scenes carry both `uid=` and `path=` on every `ext_resource`, which is what the Task 6 boundary checker relies on. Hand-written scenes routinely omit one.
+> **If you are hand-writing these `.tscn` files** (an agent cannot drive the editor GUI), you must
+> supply the uids the editor would have written — verified necessary on 4.7.1, where neither
+> `--import` nor a programmatic `ResourceSaver.save()` round-trip assigns one:
+>
+> 1. Generate ids with `ResourceUID.create_id()` / `ResourceUID.id_to_text()` in a throwaway
+>    `SceneTree` script. Never invent uid strings by hand.
+> 2. Put `uid="uid://…"` in each `[gd_scene …]` header line.
+> 3. Give `main.tscn`'s `ext_resource` **both** `uid=` and `path=` — that is what the editor emits.
+>    `uid=` *without* `path=` is a hard parse error; `path=` alone merely loses the identity.
+> 4. Run `--headless --import` afterwards, then assert `ResourceUID.has_id()` and
+>    `ResourceUID.get_id_path()` resolve for both scenes.
+>
+> This is load-bearing: **Task 7 Step 3 greps a uid out of `blockout.tscn`** to plant its
+> boundary-check violation. With no uid the grep yields an empty string and that check passes
+> while testing nothing.
 
 - [ ] **Step 5: Verify the project runs**
 
