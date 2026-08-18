@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://dtxrct5dqx0pg"]
 
-[ext_resource type="PackedScene" path="res://demo/levels/blockout/blockout.tscn" id="1_blockout"]
+[ext_resource type="PackedScene" uid="uid://5axvtw3hkomu" path="res://demo/levels/blockout/blockout.tscn" id="1_blockout"]
 
 [node name="Main" type="Node3D"]
 
