@@ -374,17 +374,23 @@ const AUTOLOAD_NAME := "FpsSettings"
 const AUTOLOAD_PATH := "res://addons/fps_starter/util/fps_settings.gd"
 
 
-func _enter_tree() -> void:
-	# _enter_tree runs on every editor start; only write project.godot if the
-	# autoload is genuinely absent, otherwise we churn the user's VCS.
+## Why _enable_plugin/_disable_plugin and NOT _enter_tree/_exit_tree:
+## _enter_tree and _exit_tree run on every editor start AND shutdown, so
+## removing the autoload from _exit_tree deletes it again on every quit --
+## verified on 4.7.1, where the entry never survived to disk. This pair fires
+## only on the explicit toggle in the Plugins tab, i.e. the real install event.
+##
+## A CLONED project therefore never runs _enable_plugin: the autoload is
+## already committed in project.godot, which is the correct shipped state.
+func _enable_plugin() -> void:
 	if not ProjectSettings.has_setting("autoload/" + AUTOLOAD_NAME):
 		add_autoload_singleton(AUTOLOAD_NAME, AUTOLOAD_PATH)
 
 
-func _exit_tree() -> void:
-	# Removing our OWN autoload on disable is correct and reversible.
-	# Note the asymmetry with input actions, which we never remove: those hold
-	# the user's rebinds, and destroying them on a plugin toggle loses data.
+func _disable_plugin() -> void:
+	# Removing our OWN autoload on an explicit disable is correct and
+	# reversible. Note the asymmetry with input actions, which we never remove:
+	# those hold the user's rebinds, and destroying them on a toggle loses data.
 	if ProjectSettings.has_setting("autoload/" + AUTOLOAD_NAME):
 		remove_autoload_singleton(AUTOLOAD_NAME)
 ```
@@ -402,7 +408,22 @@ extends Node
 
 - [ ] **Step 4: Enable the plugin and verify the autoload appears**
 
-Open the editor, go to **Project → Project Settings → Plugins**, and enable **FPS Starter**. Then verify:
+Add `res://addons/fps_starter/plugin.cfg` to the `enabled=PackedStringArray(...)` list in
+`[editor_plugins]`, and commit the `[autoload]` entry to `project.godot` directly:
+
+```ini
+[autoload]
+
+FpsSettings="*res://addons/fps_starter/util/fps_settings.gd"
+```
+
+A cloned project never fires `_enable_plugin()`, so the committed entry IS the shipped state; the
+`_enable_plugin()` path serves the install-into-an-existing-project journey. Then verify the entry
+**survives** an editor session — the regression that the hook choice above exists to prevent:
+
+```bash
+GDTEST_TIMEOUT=300 tools/gdtest --path . --headless --editor --quit
+```
 
 ```bash
 grep -A2 '^\[autoload\]' project.godot
