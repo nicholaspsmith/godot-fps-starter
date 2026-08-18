@@ -1257,8 +1257,11 @@ This is the important step: a checker that never fails is worthless.
 
 ```bash
 # Plant a violation using the uid form a grep would MISS.
-UID=$(grep -o 'uid://[a-z0-9]*' demo/levels/blockout/blockout.tscn | head -1)
-echo "const LEAK = preload(\"$UID\")" > addons/fps_starter/util/leak_probe.gd
+# NB: do NOT name this variable UID — it is readonly in both bash and zsh
+# (it holds the user id), so assigning to it fails and the probe tests nothing.
+LEAK_UID=$(grep -o 'uid://[a-z0-9]*' demo/levels/blockout/blockout.tscn | head -1)
+test -n "$LEAK_UID" || { echo "no uid found in blockout.tscn — the probe would be vacuous"; exit 1; }
+echo "const LEAK = preload(\"$LEAK_UID\")" > addons/fps_starter/util/leak_probe.gd
 
 tools/gdtest --path . --headless --script res://tools/ci/check_boundary.gd; echo "exit=$?"
 ```
